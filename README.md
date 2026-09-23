@@ -78,10 +78,3 @@ Dentro do PlotJuggler:
 2. Marca o tópico `/odom` → **OK**
 3. Expande `odom` → `twist` → `twist`
 4. Arrasta `linear/x` e `angular/z` pro gráfico
-
-### Controlando via terminal (sem teclado)
-
-```bash
-source ~/ros2_ws/install/setup.bash
-ros2 topic pub -r 10 /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.3}, angular: {z: 0.0}}"
-``
