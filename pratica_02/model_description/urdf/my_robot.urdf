@@ -1,0 +1,165 @@
+<robot name="my_robot">
+
+  <!-- BASE LINK (raiz, sem inércia) -->
+  <link name="base_link"/>
+
+  <joint name="base_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="chassis"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- CHASSIS / BASE LINK -->
+  <link name="chassis">
+    <inertial>
+      <origin xyz="0 0 0.1" rpy="0 0 0"/>
+      <mass value="5.0"/>
+      <inertia ixx="0.0216" ixy="0" ixz="0" iyy="0.0733" iyz="0" izz="0.0850"/>
+    </inertial>
+
+    <collision name="collision">
+      <origin xyz="0 0 0.1" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.4 0.2 0.1"/>
+      </geometry>
+    </collision>
+
+    <visual name="visual">
+      <origin xyz="0 0 0.15" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="model://pioneer2dx/meshes/chassis.dae" scale="0.9 0.5 0.5"/>
+      </geometry>
+    </visual>
+
+    <!-- CASTER -->
+    <collision name="caster_collision">
+      <origin xyz="-0.15 0 0.05" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.05"/>
+      </geometry>
+    </collision>
+
+    <visual name="caster_visual">
+      <origin xyz="-0.15 0 0.05" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.05"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <!-- RODA ESQUERDA -->
+  <link name="left_wheel">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.5"/>
+      <inertia ixx="0.00068" ixy="0" ixz="0" iyy="0.00068" iyz="0" izz="0.0025"/>
+    </inertial>
+
+    <collision name="collision">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.1" length="0.05"/>
+      </geometry>
+    </collision>
+
+    <visual name="visual">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.1" length="0.05"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <!-- RODA DIREITA -->
+  <link name="right_wheel">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.5"/>
+      <inertia ixx="0.00068" ixy="0" ixz="0" iyy="0.00068" iyz="0" izz="0.0025"/>
+    </inertial>
+
+    <collision name="collision">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.1" length="0.05"/>
+      </geometry>
+    </collision>
+
+    <visual name="visual">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.1" length="0.05"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <!-- JUNTA DA RODA ESQUERDA -->
+  <joint name="left_wheel_hinge" type="continuous">
+    <parent link="chassis"/>
+    <child link="left_wheel"/>
+    <origin xyz="0.1 0.13 0.1" rpy="0 1.5707 1.5707"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <!-- JUNTA DA RODA DIREITA -->
+  <joint name="right_wheel_hinge" type="continuous">
+    <parent link="chassis"/>
+    <child link="right_wheel"/>
+    <origin xyz="0.1 -0.13 0.1" rpy="0 1.5707 1.5707"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <!-- ATRITO DO CASTER (extensão Gazebo) -->
+  <gazebo reference="chassis">
+    <mu1>0</mu1>
+    <mu2>0</mu2>
+  </gazebo>
+
+  <!-- ATRITO DAS RODAS -->
+  <gazebo reference="left_wheel">
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+  </gazebo>
+
+  <gazebo reference="right_wheel">
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+  </gazebo>
+
+  <!-- ROS2 CONTROL: declara as juntas das rodas como atuadores -->
+  <ros2_control name="GazeboSystem" type="system">
+    <hardware>
+      <plugin>gazebo_ros2_control/GazeboSystem</plugin>
+    </hardware>
+    <joint name="left_wheel_hinge">
+      <command_interface name="velocity">
+        <param name="min">-10</param>
+        <param name="max">10</param>
+      </command_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="position"/>
+    </joint>
+    <joint name="right_wheel_hinge">
+      <command_interface name="velocity">
+        <param name="min">-10</param>
+        <param name="max">10</param>
+      </command_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="position"/>
+    </joint>
+  </ros2_control>
+
+  <!-- PLUGIN QUE CARREGA O ROS2_CONTROL DENTRO DO GAZEBO -->
+  <gazebo>
+  <plugin filename="libgazebo_ros2_control.so" name="gazebo_ros2_control">
+    <robot_param>robot_description</robot_param>
+    <robot_param_node>robot_state_publisher</robot_param_node>
+    <parameters>$(find model_description)/config/diff_drive_controller.yaml</parameters>
+    <ros>
+      <remapping>/diff_drive_controller/cmd_vel_unstamped:=/cmd_vel</remapping>
+      <remapping>/diff_drive_controller/odom:=/odom</remapping>
+    </ros>
+  </plugin>
+</gazebo>
+
+</robot>
