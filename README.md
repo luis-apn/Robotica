@@ -1,80 +1,57 @@
-# Prática 2 — Controle de Movimento (ROS2 + Gazebo Classic)
+# Robótica — Práticas com ROS2 + Gazebo Classic
 
-Pacote ROS2 com o robô diferencial convertido de SDF para URDF, controlado via `gazebo_ros2_control` + `diff_drive_controller`, com controle teleoperado por teclado.
+Repositório com as atividades práticas da disciplina de **Robótica**, desenvolvidas em **ROS2 Humble** e simuladas no **Gazebo Classic 11**. Todas as práticas usam o mesmo robô diferencial: a prática 02 monta o robô e a simulação, e as práticas seguintes adicionam os nós de controle por cima dela.
 
-## Pré-requisitos
+Cada prática fica numa pasta própria, com um README detalhando o funcionamento e como executar.
+
+## Práticas
+
+| Pasta | Tema | Conteúdo |
+|---|---|---|
+| [pratica_02](pratica_02/README.md) | Controle de movimento | Pacote `model_description`: robô diferencial em URDF, `gazebo_ros2_control` + `diff_drive_controller`, teleoperação por teclado e visualização da velocidade no PlotJuggler. |
+| [pratica_03](pratica_03/README.md) | Controle de pose e trajetória | Pacote `controle_trajetoria`: controle de pose (contínuo e três manobras), seguimento de missão por waypoints e trajetória em 8 (malha aberta e realimentado com feedforward), com cálculo do RMSE. |
+
+## Estrutura do repositório
+
+```
+Robotica/
+├── pratica_02/
+│   ├── README.md
+│   └── model_description/      # Pacote ROS2 (ament_cmake): URDF, launch e config do robô
+└── pratica_03/
+    ├── README.md
+    ├── Prtica_robtica_03___Controle_de_trajetria.pdf   # Roteiro da atividade
+    ├── controle_trajetoria/    # Pacote ROS2 (ament_python): nós de controle
+    └── config/                 # Parâmetros (YAML) de cada nó
+```
+
+## Ambiente
 
 - Ubuntu 22.04
 - ROS2 Humble
-- Gazebo Classic 11 (`gazebo_ros_pkgs`)
+- Gazebo Classic 11
+- PlotJuggler (`ros-humble-plotjuggler-ros`) para visualização
 
-Instala as dependências necessárias:
+As dependências específicas de cada prática estão listadas no README dela.
 
-```bash
-sudo apt install ros-humble-gazebo-ros-pkgs \
-  ros-humble-gazebo-ros2-control \
-  ros-humble-diff-drive-controller \
-  ros-humble-joint-state-broadcaster \
-  ros-humble-controller-manager \
-  ros-humble-teleop-twist-keyboard \
-  ros-humble-plotjuggler-ros \
-  xterm -y
-```
+## Uso rápido
 
-## Instalação
-
-Clona o pacote dentro do seu workspace ROS2:
+Copia os pacotes pro seu workspace ROS2 e builda:
 
 ```bash
 cd ~/ros2_ws/src
 cp -r <caminho-desse-repositorio>/pratica_02/model_description .
-```
+cp -r <caminho-desse-repositorio>/pratica_03 controle_trajetoria
 
-Builda o pacote:
-
-```bash
 cd ~/ros2_ws
-colcon build --packages-select model_description
+colcon build
 source install/setup.bash
 ```
 
-## Como rodar
-
-### Terminal 1 — sobe o sistema completo
+Sobe a simulação (base de todas as práticas):
 
 ```bash
-cd ~/ros2_ws
-source install/setup.bash
 ros2 launch model_description my_robot_urdf.launch.py
 ```
 
-Isso abre automaticamente:
-- **Gazebo Classic**, com o robô carregado e os controllers ativos
-- Uma janela **xterm** rodando o `teleop_twist_keyboard`, pronta pra uso
-
-Deixa esse terminal rodando. Pra encerrar tudo, usa `Ctrl+C` nele.
-
-### Controlando o robô pelo teclado
-
-Clica na janela do **xterm** e usa:
-
-| Tecla | Ação |
-|---|---|
-| `i` | Anda pra frente |
-| `,` | Anda de ré |
-| `j` | Gira pra esquerda |
-| `l` | Gira pra direita |
-| `k` | Para o robô |
-
-### Terminal 2 (opcional) — visualizar velocidade em tempo real
-
-```bash
-source ~/ros2_ws/install/setup.bash
-ros2 run plotjuggler plotjuggler
-```
-
-Dentro do PlotJuggler:
-1. **Streaming** → **ROS2 Topic Subscriber** → **Start**
-2. Marca o tópico `/odom` → **OK**
-3. Expande `odom` → `twist` → `twist`
-4. Arrasta `linear/x` e `angular/z` pro gráfico
+A partir daí, segue as instruções do README da prática desejada.
