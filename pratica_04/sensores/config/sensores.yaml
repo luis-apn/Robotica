@@ -1,0 +1,22 @@
+# Parâmetros dos nós do pacote sensores (prática 04)
+gps_to_xyz:
+  ros__parameters:
+    use_sim_time: true
+    # Origem do plano local: os MESMOS valores do <spherical_coordinates> do
+    # worlds/sensores.world (model_description), para (0,0,0) = origem do mundo
+    origin_lat: -7.1395
+    origin_lon: -34.8461
+    origin_alt: 40.0
+    use_first_fix: false          # true = origem na primeira leitura do GPS
+    frame_id: map
+
+pose_sensores:
+  ros__parameters:
+    use_sim_time: true
+    yaw_source: gyro              # gyro (integra o giroscópio) | orientation (orientação da IMU)
+    gps_offset_x: -0.12           # posição da antena no base_link (gps_joint do URDF)
+    gps_offset_y: 0.0
+    frame_id: map
+    child_frame_id: base_sensores
+    publish_tf: true
+    ground_truth_topic: /ground_truth   # só para avaliação ('' desliga)

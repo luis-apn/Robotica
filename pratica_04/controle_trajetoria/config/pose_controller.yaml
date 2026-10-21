@@ -1,0 +1,23 @@
+# Exercício 1.1 — controle de pose
+# Atenção: valores reais precisam ter ponto decimal (1.0, não 1), senão o
+# ROS 2 acusa erro de tipo (INTEGER vs DOUBLE).
+pose_controller:
+  ros__parameters:
+    use_sim_time: true
+
+    mode: continuous              # continuous | three_maneuvers
+
+    linear:                       # PID de v sobre a distância rho
+      kp: 0.8
+      ki: 0.0
+      kd: 0.0
+    angular:                      # PID de w sobre o erro angular
+      kp: 2.0
+      ki: 0.0
+      kd: 0.0
+
+    position_tolerance: 0.05      # m
+    angle_tolerance: 0.05         # rad (~3°)
+
+    v_max: 0.5                    # m/s  (diff_drive aceita até 1.0)
+    w_max: 1.5                    # rad/s (diff_drive aceita até 2.0)
