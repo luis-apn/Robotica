@@ -1,0 +1,37 @@
+# Prática 05, exercício 2.1 — trajetória em 8 usando o estado estimado (Kalman)
+#   x_d = A sin(Ωt),  y_d = B sin(Ωt) cos(Ωt)
+trajectory_8:
+  ros__parameters:
+    use_sim_time: true
+
+    # Realimentação
+    pose_topic: /odometry/filtered    # Kalman | /odom_sensores (GPS + IMU) | /odom (rodas)
+    ground_truth_topic: /ground_truth # pose real do Gazebo, só para o RMSE "real"
+    anchor_at_start: false            # false = 8 centrado na origem do mundo
+
+    # Trajetória
+    A: 1.0
+    B: 2.0
+    Omega: 0.5                    # rad/s
+    laps: 2.0                     # quantas voltas completas (período 2π/Ω)
+
+    # Controlador
+    mode: feedback                # open_loop | feedback
+    k_ff: 1.0                     # ganho do feedforward (0 = só realimentação)
+    d: 0.2                        # m, distância do ponto controlado à frente
+    feedback:                     # PID de cada eixo (x e y) do ponto à frente
+      kp: 1.5
+      ki: 0.0
+      kd: 0.0
+
+    # Alinhamento inicial com o rumo da trajetória
+    align_first: true
+    align_tolerance: 0.05         # rad (~3°)
+    align:                        # kp·w_max não pode passar da desaceleração
+      kp: 1.0                     # angular do diff_drive (2 rad/s²), senão oscila
+      ki: 0.0
+      kd: 0.0
+
+    # Mesmos limites do diff_drive_controller.yaml da prática 02
+    v_max: 1.0
+    w_max: 2.0

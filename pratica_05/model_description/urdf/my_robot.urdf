@@ -1,0 +1,431 @@
+<robot name="my_robot">
+
+  <!--
+    Prática 05: robô diferencial da prática 02 + sensores (IMU, GPS, câmera
+    RGB e lidar 2D), todos com ruído gaussiano, + ground truth (p3d).
+
+    Os valores @..._STD@ são substituídos pelo launch (my_robot_urdf.launch.py)
+    pelo desvio padrão base de cada ruído multiplicado pelo argumento
+    noise_scale. Assim dá pra aumentar o ruído sem editar este arquivo:
+        ros2 launch model_description my_robot_urdf.launch.py noise_scale:=5.0
+  -->
+
+  <!-- CORES (usadas só pelo RViz; no Gazebo a cor vem das tags <gazebo>) -->
+  <material name="laranja"><color rgba="1.0 0.5 0.0 1.0"/></material>
+  <material name="verde"><color rgba="0.0 0.8 0.2 1.0"/></material>
+  <material name="azul"><color rgba="0.0 0.3 1.0 1.0"/></material>
+  <material name="preto"><color rgba="0.1 0.1 0.1 1.0"/></material>
+  <material name="cinza"><color rgba="0.6 0.6 0.6 1.0"/></material>
+
+  <!-- BASE LINK (raiz, sem inércia) -->
+  <link name="base_link"/>
+
+  <joint name="base_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="chassis"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- CHASSIS -->
+  <!-- As tags <collision> ficam SEM o atributo name: com ele, a conversão
+       URDF→SDF descarta o atrito das tags <gazebo reference> (mu1/mu2) e o
+       caster fica com atrito 1, arrastando no chão (o robô patinava e quase
+       não girava no lugar). -->
+  <link name="chassis">
+    <inertial>
+      <origin xyz="0 0 0.1" rpy="0 0 0"/>
+      <mass value="5.0"/>
+      <inertia ixx="0.0216" ixy="0" ixz="0" iyy="0.0733" iyz="0" izz="0.0850"/>
+    </inertial>
+
+    <collision>
+      <origin xyz="0 0 0.1" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.4 0.2 0.1"/>
+      </geometry>
+    </collision>
+
+    <!-- Mesh do pioneer: aparece no Gazebo (o RViz não resolve model://) -->
+    <visual name="visual">
+      <origin xyz="0 0 0.15" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="model://pioneer2dx/meshes/chassis.dae" scale="0.9 0.5 0.5"/>
+      </geometry>
+    </visual>
+
+    <!-- CASTER -->
+    <collision>
+      <origin xyz="-0.15 0 0.05" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.05"/>
+      </geometry>
+    </collision>
+
+    <visual name="caster_visual">
+      <origin xyz="-0.15 0 0.05" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.05"/>
+      </geometry>
+      <material name="cinza"/>
+    </visual>
+  </link>
+
+  <!-- RODA ESQUERDA -->
+  <link name="left_wheel">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.5"/>
+      <inertia ixx="0.00068" ixy="0" ixz="0" iyy="0.00068" iyz="0" izz="0.0025"/>
+    </inertial>
+
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.1" length="0.05"/>
+      </geometry>
+    </collision>
+
+    <visual name="visual">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.1" length="0.05"/>
+      </geometry>
+      <material name="preto"/>
+    </visual>
+  </link>
+
+  <!-- RODA DIREITA -->
+  <link name="right_wheel">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.5"/>
+      <inertia ixx="0.00068" ixy="0" ixz="0" iyy="0.00068" iyz="0" izz="0.0025"/>
+    </inertial>
+
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.1" length="0.05"/>
+      </geometry>
+    </collision>
+
+    <visual name="visual">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.1" length="0.05"/>
+      </geometry>
+      <material name="preto"/>
+    </visual>
+  </link>
+
+  <!-- JUNTA DA RODA ESQUERDA -->
+  <joint name="left_wheel_hinge" type="continuous">
+    <parent link="chassis"/>
+    <child link="left_wheel"/>
+    <origin xyz="0.1 0.13 0.1" rpy="0 1.5707 1.5707"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <!-- JUNTA DA RODA DIREITA -->
+  <joint name="right_wheel_hinge" type="continuous">
+    <parent link="chassis"/>
+    <child link="right_wheel"/>
+    <origin xyz="0.1 -0.13 0.1" rpy="0 1.5707 1.5707"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <!-- ===================================================================== -->
+  <!-- SENSORES                                                              -->
+  <!-- Cada sensor é um link com visual, preso ao base_link por uma junta    -->
+  <!-- fixa. O robot_state_publisher transforma cada junta em uma TF.        -->
+  <!-- Os links dos sensores não têm <collision> para os raios do lidar e da -->
+  <!-- câmera não baterem no próprio robô.                                   -->
+  <!-- ===================================================================== -->
+
+  <!-- IMU: no centro do robô (sobre o eixo de rotação) -->
+  <link name="imu_link">
+    <inertial>
+      <mass value="0.01"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+    </inertial>
+    <visual>
+      <geometry><box size="0.05 0.05 0.02"/></geometry>
+      <material name="laranja"/>
+    </visual>
+  </link>
+  <joint name="imu_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+    <origin xyz="0 0 0.20" rpy="0 0 0"/>
+  </joint>
+
+  <!-- GPS: antena atrás e no alto -->
+  <link name="gps_link">
+    <inertial>
+      <mass value="0.01"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+    </inertial>
+    <visual>
+      <geometry><cylinder radius="0.025" length="0.06"/></geometry>
+      <material name="verde"/>
+    </visual>
+  </link>
+  <joint name="gps_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="gps_link"/>
+    <origin xyz="-0.12 0 0.23" rpy="0 0 0"/>
+  </joint>
+
+  <!-- CÂMERA RGB FRONTAL -->
+  <link name="camera_link">
+    <inertial>
+      <mass value="0.01"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+    </inertial>
+    <visual>
+      <geometry><box size="0.03 0.08 0.04"/></geometry>
+      <material name="azul"/>
+    </visual>
+  </link>
+  <joint name="camera_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_link"/>
+    <origin xyz="0.19 0 0.20" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Frame óptico da câmera (convenção ROS: z pra frente, x pra direita,
+       y pra baixo). A imagem é publicada nesse frame. -->
+  <link name="camera_optical_link"/>
+  <joint name="camera_optical_joint" type="fixed">
+    <parent link="camera_link"/>
+    <child link="camera_optical_link"/>
+    <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708"/>
+  </joint>
+
+  <!-- LIDAR 2D FRONTAL: acima da câmera, para ela não bloquear o feixe -->
+  <link name="lidar_link">
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="1e-5" ixy="0" ixz="0" iyy="1e-5" iyz="0" izz="1e-5"/>
+    </inertial>
+    <visual>
+      <geometry><cylinder radius="0.04" length="0.05"/></geometry>
+      <material name="preto"/>
+    </visual>
+  </link>
+  <joint name="lidar_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="lidar_link"/>
+    <origin xyz="0.10 0 0.25" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ===================================================================== -->
+  <!-- PLUGINS DOS SENSORES (extensões Gazebo)                               -->
+  <!-- frame_name é explícito porque o Gazebo funde os links de junta fixa   -->
+  <!-- no link pai; sem ele, as mensagens sairiam no frame errado.           -->
+  <!-- ===================================================================== -->
+
+  <!-- IMU → /imu/data (sensor_msgs/Imu)
+       Ruído gaussiano na velocidade angular (com bias) e na aceleração
+       linear. A orientação é calculada pelo Gazebo a partir da pose real
+       (o Gazebo Classic não aplica ruído nela). -->
+  <gazebo reference="imu_link">
+    <material>Gazebo/Orange</material>
+    <sensor name="imu_sensor" type="imu">
+      <always_on>true</always_on>
+      <update_rate>100</update_rate>
+      <visualize>false</visualize>
+      <imu>
+        <angular_velocity>
+          <x><noise type="gaussian"><mean>0.0</mean><stddev>@GYRO_STD@</stddev><bias_mean>0.0</bias_mean><bias_stddev>@GYRO_BIAS_STD@</bias_stddev></noise></x>
+          <y><noise type="gaussian"><mean>0.0</mean><stddev>@GYRO_STD@</stddev><bias_mean>0.0</bias_mean><bias_stddev>@GYRO_BIAS_STD@</bias_stddev></noise></y>
+          <z><noise type="gaussian"><mean>0.0</mean><stddev>@GYRO_STD@</stddev><bias_mean>0.0</bias_mean><bias_stddev>@GYRO_BIAS_STD@</bias_stddev></noise></z>
+        </angular_velocity>
+        <linear_acceleration>
+          <x><noise type="gaussian"><mean>0.0</mean><stddev>@ACCEL_STD@</stddev><bias_mean>0.0</bias_mean><bias_stddev>@ACCEL_BIAS_STD@</bias_stddev></noise></x>
+          <y><noise type="gaussian"><mean>0.0</mean><stddev>@ACCEL_STD@</stddev><bias_mean>0.0</bias_mean><bias_stddev>@ACCEL_BIAS_STD@</bias_stddev></noise></y>
+          <z><noise type="gaussian"><mean>0.0</mean><stddev>@ACCEL_STD@</stddev><bias_mean>0.0</bias_mean><bias_stddev>@ACCEL_BIAS_STD@</bias_stddev></noise></z>
+        </linear_acceleration>
+      </imu>
+      <plugin name="imu_plugin" filename="libgazebo_ros_imu_sensor.so">
+        <ros>
+          <namespace>/imu</namespace>
+          <remapping>~/out:=data</remapping>
+        </ros>
+        <initial_orientation_as_reference>false</initial_orientation_as_reference>
+        <frame_name>imu_link</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- GPS → /gps/fix (sensor_msgs/NavSatFix: latitude, longitude, altitude)
+       A origem geográfica vem do <spherical_coordinates> do mundo
+       (worlds/sensores.world). Ruído gaussiano em metros. -->
+  <gazebo reference="gps_link">
+    <material>Gazebo/Green</material>
+    <sensor name="gps_sensor" type="gps">
+      <always_on>true</always_on>
+      <update_rate>10</update_rate>
+      <gps>
+        <position_sensing>
+          <horizontal>
+            <noise type="gaussian"><mean>0.0</mean><stddev>@GPS_H_STD@</stddev></noise>
+          </horizontal>
+          <vertical>
+            <noise type="gaussian"><mean>0.0</mean><stddev>@GPS_V_STD@</stddev></noise>
+          </vertical>
+        </position_sensing>
+      </gps>
+      <plugin name="gps_plugin" filename="libgazebo_ros_gps_sensor.so">
+        <ros>
+          <namespace>/gps</namespace>
+          <remapping>~/out:=fix</remapping>
+        </ros>
+        <frame_name>gps_link</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- CÂMERA RGB → /camera/image_raw e /camera/camera_info
+       Ruído gaussiano somado à intensidade de cada pixel (escala 0..1). -->
+  <gazebo reference="camera_link">
+    <material>Gazebo/Blue</material>
+    <sensor name="camera_sensor" type="camera">
+      <always_on>true</always_on>
+      <update_rate>15</update_rate>
+      <visualize>false</visualize>
+      <camera name="camera">
+        <horizontal_fov>1.047</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>480</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.05</near>
+          <far>50.0</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>@CAMERA_STD@</stddev>
+        </noise>
+      </camera>
+      <plugin name="camera_plugin" filename="libgazebo_ros_camera.so">
+        <camera_name>camera</camera_name>
+        <frame_name>camera_optical_link</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- LIDAR 2D → /lidar/points (sensor_msgs/PointCloud2, nuvem de pontos)
+       180° à frente, 360 feixes (0,5°), alcance 0,12 a 10 m, 10 Hz.
+       Ruído gaussiano em metros na distância de cada feixe. -->
+  <gazebo reference="lidar_link">
+    <material>Gazebo/Black</material>
+    <sensor name="lidar_sensor" type="ray">
+      <always_on>true</always_on>
+      <update_rate>10</update_rate>
+      <visualize>true</visualize>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>360</samples>
+            <resolution>1</resolution>
+            <min_angle>-1.5708</min_angle>
+            <max_angle>1.5708</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.12</min>
+          <max>10.0</max>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>@LIDAR_STD@</stddev>
+        </noise>
+      </ray>
+      <plugin name="lidar_plugin" filename="libgazebo_ros_ray_sensor.so">
+        <ros>
+          <namespace>/lidar</namespace>
+          <remapping>~/out:=points</remapping>
+        </ros>
+        <output_type>sensor_msgs/PointCloud2</output_type>
+        <frame_name>lidar_link</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- GROUND TRUTH → /ground_truth (nav_msgs/Odometry, sem ruído)
+       Pose real do robô no mundo, usada só para AVALIAR o controle (RMSE e
+       comparação no PlotJuggler), nunca para controlar. -->
+  <gazebo>
+    <plugin name="ground_truth" filename="libgazebo_ros_p3d.so">
+      <ros>
+        <remapping>odom:=ground_truth</remapping>
+      </ros>
+      <body_name>base_link</body_name>
+      <frame_name>world</frame_name>
+      <update_rate>50</update_rate>
+      <gaussian_noise>0.0</gaussian_noise>
+    </plugin>
+  </gazebo>
+
+  <!-- ATRITO DO CASTER (extensão Gazebo) -->
+  <gazebo reference="chassis">
+    <mu1>0</mu1>
+    <mu2>0</mu2>
+  </gazebo>
+
+  <!-- ATRITO DAS RODAS -->
+  <gazebo reference="left_wheel">
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+    <material>Gazebo/DarkGrey</material>
+  </gazebo>
+
+  <gazebo reference="right_wheel">
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+    <material>Gazebo/DarkGrey</material>
+  </gazebo>
+
+  <!-- ROS2 CONTROL: declara as juntas das rodas como atuadores -->
+  <ros2_control name="GazeboSystem" type="system">
+    <hardware>
+      <plugin>gazebo_ros2_control/GazeboSystem</plugin>
+    </hardware>
+    <joint name="left_wheel_hinge">
+      <command_interface name="velocity">
+        <param name="min">-10</param>
+        <param name="max">10</param>
+      </command_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="position"/>
+    </joint>
+    <joint name="right_wheel_hinge">
+      <command_interface name="velocity">
+        <param name="min">-10</param>
+        <param name="max">10</param>
+      </command_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="position"/>
+    </joint>
+  </ros2_control>
+
+  <!-- PLUGIN QUE CARREGA O ROS2_CONTROL DENTRO DO GAZEBO -->
+  <gazebo>
+    <plugin filename="libgazebo_ros2_control.so" name="gazebo_ros2_control">
+      <robot_param>robot_description</robot_param>
+      <robot_param_node>robot_state_publisher</robot_param_node>
+      <parameters>$(find model_description)/config/diff_drive_controller.yaml</parameters>
+      <ros>
+        <remapping>/diff_drive_controller/cmd_vel_unstamped:=/cmd_vel</remapping>
+        <remapping>/diff_drive_controller/odom:=/odom</remapping>
+      </ros>
+    </plugin>
+  </gazebo>
+
+</robot>

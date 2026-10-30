@@ -1,0 +1,119 @@
+<?xml version="1.0" ?>
+<!--
+  Mundo da prática 05.
+  - spherical_coordinates: origem geográfica do mundo (usada pelo sensor GPS).
+    O eixo X do mundo aponta para o Leste e o Y para o Norte (ENU), então o
+    GPS convertido para XYZ fica no mesmo referencial do /odom. Obs.: no
+    Gazebo Classic (11) o GPS sai girado 180° com heading 0 (x e y com sinal
+    trocado); heading_deg = 180 compensa isso.
+  - Obstáculos estáticos para a câmera e o lidar terem o que ver. Todos ficam
+    a mais de 2,5 m da origem: a trajetória em 8 (A=1, B=2) ocupa só
+    |x| <= 1 m e |y| <= 1 m, então eles não atrapalham o exercício 2.1.
+-->
+<sdf version="1.6">
+  <world name="sensores">
+
+    <include><uri>model://sun</uri></include>
+    <include><uri>model://ground_plane</uri></include>
+
+    <!-- Origem geográfica do mundo: UFPB, João Pessoa -->
+    <spherical_coordinates>
+      <surface_model>EARTH_WGS84</surface_model>
+      <latitude_deg>-7.1395</latitude_deg>
+      <longitude_deg>-34.8461</longitude_deg>
+      <elevation>40.0</elevation>
+      <heading_deg>180</heading_deg>
+    </spherical_coordinates>
+
+    <!-- Caixa vermelha bem à frente do robô (câmera e lidar) -->
+    <model name="caixa_vermelha">
+      <static>true</static>
+      <pose>3 0 0.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.5 0.5 0.5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.5 0.5 0.5</size></box></geometry>
+          <material><script>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+            <name>Gazebo/Red</name>
+          </script></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Caixa azul à frente e à esquerda -->
+    <model name="caixa_azul">
+      <static>true</static>
+      <pose>2.5 2 0.4 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.4 0.8 0.8</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.4 0.8 0.8</size></box></geometry>
+          <material><script>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+            <name>Gazebo/Blue</name>
+          </script></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Cilindro verde à frente e à direita -->
+    <model name="cilindro_verde">
+      <static>true</static>
+      <pose>2 -2 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.2</radius><length>1.0</length></cylinder></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.2</radius><length>1.0</length></cylinder></geometry>
+          <material><script>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+            <name>Gazebo/Green</name>
+          </script></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Cilindro amarelo à esquerda -->
+    <model name="cilindro_amarelo">
+      <static>true</static>
+      <pose>0 3 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.3</radius><length>1.0</length></cylinder></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.3</radius><length>1.0</length></cylinder></geometry>
+          <material><script>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+            <name>Gazebo/Yellow</name>
+          </script></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Parede atrás do robô -->
+    <model name="parede">
+      <static>true</static>
+      <pose>-3 0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.2 4 1</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 4 1</size></box></geometry>
+          <material><script>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+            <name>Gazebo/Grey</name>
+          </script></material>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>

@@ -1,0 +1,7 @@
+# Parâmetros do nó do Gazebo (gazebo_ros).
+# publish_rate: frequência do /clock. O padrão é 10 Hz, e tudo que roda com
+# use_sim_time (EKF, controle) só avança quando o /clock avança: a 10 Hz o
+# controle da trajetória fica amostrado devagar demais e a malha oscila.
+gazebo:
+  ros__parameters:
+    publish_rate: 100.0

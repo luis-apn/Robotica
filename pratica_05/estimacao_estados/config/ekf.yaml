@@ -1,0 +1,44 @@
+# Exercício 1.1 — filtro de Kalman estendido (robot_localization)
+# Ordem de cada vetor de 15 booleanos:
+#   [x, y, z,  roll, pitch, yaw,  vx, vy, vz,  vroll, vpitch, vyaw,  ax, ay, az]
+ekf_filter_node:
+  ros__parameters:
+    use_sim_time: true
+    frequency: 50.0
+    two_d_mode: true
+
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_link
+    world_frame: odom
+
+    # O diff_drive_controller já publica odom -> base_link: o filtro só
+    # publica /odometry/filtered, senão haveria dois publicadores do mesmo TF.
+    publish_tf: false
+
+    # Odometria das rodas: vx, vy (=0, robô diferencial) e velocidade angular
+    odom0: /odom
+    odom0_config: [false, false, false,
+                   false, false, false,
+                   true,  true,  false,
+                   false, false, true,
+                   false, false, false]
+
+    # IMU: orientação (yaw) e velocidade angular (giroscópio). O yaw absoluto é
+    # a referência absoluta de rumo do filtro (sem ela o θ só seria integrado e
+    # um erro inicial nunca seria corrigido). Obs.: no Gazebo Classic a orientação
+    # da IMU não recebe ruído, só o giroscópio e o acelerômetro.
+    imu0: /imu/data
+    imu0_config: [false, false, false,
+                  false, false, true,
+                  false, false, false,
+                  false, false, true,
+                  false, false, false]
+
+    # GPS (x, y em metros, já convertido pelo gps_to_xyz) via /odom_sensores
+    odom1: /odom_sensores
+    odom1_config: [true,  true,  false,
+                   false, false, false,
+                   false, false, false,
+                   false, false, false,
+                   false, false, false]

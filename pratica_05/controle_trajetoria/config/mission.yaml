@@ -1,0 +1,26 @@
+# Exercício 1.2 — missão com waypoints
+# Parâmetros do ROS 2 não aceitam lista de listas: por isso os waypoints são
+# arrays paralelos (o i-ésimo waypoint é x[i], y[i]).
+mission:
+  ros__parameters:
+    use_sim_time: true
+
+    mode: continuous              # continuous | three_maneuvers
+
+    waypoints_x: [2.0, 1.0, -1.0]
+    waypoints_y: [1.0, 2.5, 1.0]
+    waypoint_radius: 0.15         # m, raio em que o waypoint conta como atingido
+
+    linear:
+      kp: 0.8
+      ki: 0.0
+      kd: 0.0
+    angular:
+      kp: 2.0
+      ki: 0.0
+      kd: 0.0
+
+    angle_tolerance: 0.05
+
+    v_max: 0.5
+    w_max: 1.5
